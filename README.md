@@ -113,7 +113,39 @@ export R2_SECRET_ACCESS_KEY=<secret>
 export R2_BUCKET=<bucket>
 ```
 
-## 8. Clean Install (pip)
+## 8. Running GR00T Policy
+
+Install GR00T from NVIDIA source (not via simple PyPI install):
+
+```bash
+conda create -n gr00t python=3.10 -y
+conda activate gr00t
+git clone https://github.com/NVIDIA/Isaac-GR00T.git
+cd Isaac-GR00T
+uv sync --python 3.10
+uv pip install -e .
+```
+
+Then run the GR00T adapter directly:
+
+```bash
+python run_evaluation.py \
+  --policy unskild_gr00t \
+  --checkpoint-path /policy_checkpoint/gr00t_model \
+  --device cuda
+```
+
+If `--device` is omitted, the default is `cpu`.
+
+Docker build can optionally install GR00T from source:
+
+```bash
+export INSTALL_GR00T_FROM_SOURCE=1
+export GR00T_REPO_URL=https://github.com/NVIDIA/Isaac-GR00T.git
+export GR00T_REF=main
+```
+
+## 9. Clean Install (pip)
 
 For fresh-machine reproducibility:
 
@@ -125,14 +157,14 @@ This keeps existing dependency flow and adds pinned policy-specific requirements
 
 - `requirements_unskild_smolvla.txt`
 
-## 9. Logs and Stop
+## 10. Logs and Stop
 
 ```bash
 ./RUN-DOCKER-CONTAINER.sh logs policy_server
 ./RUN-DOCKER-CONTAINER.sh down
 ```
 
-## 10. WebSocket I/O Contract
+## 11. WebSocket I/O Contract
 
 Inference request fields:
 
@@ -153,7 +185,7 @@ Value requirement:
 
 - finite numeric values only
 
-## 11. Failure Semantics (Fail-Fast)
+## 12. Failure Semantics (Fail-Fast)
 
 The `unskild_smolvla` adapter exits with explicit errors when:
 

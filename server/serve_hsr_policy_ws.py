@@ -17,7 +17,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--policy",
         default=os.getenv("POLICY_NAME", "openpi"),
-        choices=["openpi", "unskild_smolvla"],
+        choices=["openpi", "unskild_smolvla", "unskild_gr00t"],
         help="Policy backend to serve.",
     )
     parser.add_argument(
@@ -42,6 +42,11 @@ def parse_args() -> argparse.Namespace:
         help="Checkpoint URI/path for unskild_smolvla policy (supports r2:// and local paths).",
     )
     parser.add_argument(
+        "--checkpoint-path",
+        default=None,
+        help="Checkpoint path for unskild_gr00t policy.",
+    )
+    parser.add_argument(
         "--checkpoint-sha256",
         default=None,
         help="Expected SHA256 checksum for checkpoint file.",
@@ -49,7 +54,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--device",
         default=None,
-        help='Device override for unskild_smolvla policy (e.g. "cuda", "cuda:0", "cpu").',
+        help='Device override for unskild policies (e.g. "cuda", "cuda:0", "cpu").',
     )
 
     # Shared arguments
@@ -165,6 +170,45 @@ def _build_unskild_policy(args: argparse.Namespace, submission_cfg: dict[str, An
     return policy, metadata
 
 
+def _build_unskild_gr00t_policy(args: argparse.Namespace, submission_cfg: dict[str, Any]):
+    from unskild_gr00t.inference import UnskildGR00TPolicy
+
+    checkpoint_path = (
+        args.checkpoint_path
+        or submission_cfg.get("checkpoint_path")
+        or args.checkpoint_uri
+        or submission_cfg.get("checkpoint_uri")
+    )
+    if not checkpoint_path:
+        raise ValueError(
+            "Checkpoint path is required for policy=unskild_gr00t. "
+            "Set --checkpoint-path (preferred) or provide it in --submission-config."
+        )
+
+    device = (
+        args.device
+        or submission_cfg.get("device_default")
+        or args.pytorch_device
+        or "cpu"
+    )
+
+    policy = UnskildGR00TPolicy(
+        checkpoint_path=str(checkpoint_path),
+        device=str(device),
+    )
+
+    metadata = {
+        "policy_name": "unskild_gr00t",
+        "checkpoint_path": str(checkpoint_path),
+        "device": str(device),
+        "submission_config": args.submission_config or "",
+        "expected_observation_keys": submission_cfg.get("expected_observation_keys", []),
+        "action_dimension": submission_cfg.get("action_dimension"),
+        "action_horizon": submission_cfg.get("action_horizon"),
+    }
+    return policy, metadata
+
+
 def main() -> None:
     args = parse_args()
     submission_cfg = _load_submission_config(args.submission_config)
@@ -173,6 +217,8 @@ def main() -> None:
         args.policy = str(submission_cfg.get("policy_name", args.policy))
         if args.device is None:
             args.device = submission_cfg.get("device_default")
+        if args.checkpoint_path is None:
+            args.checkpoint_path = submission_cfg.get("checkpoint_path")
         if args.checkpoint_uri is None:
             args.checkpoint_uri = submission_cfg.get("checkpoint_uri")
 
@@ -181,6 +227,8 @@ def main() -> None:
         policy, metadata = _build_openpi_policy(args)
     elif policy_name == "unskild_smolvla":
         policy, metadata = _build_unskild_policy(args, submission_cfg)
+    elif policy_name == "unskild_gr00t":
+        policy, metadata = _build_unskild_gr00t_policy(args, submission_cfg)
     else:
         raise ValueError(f"Unsupported policy '{policy_name}'")
 

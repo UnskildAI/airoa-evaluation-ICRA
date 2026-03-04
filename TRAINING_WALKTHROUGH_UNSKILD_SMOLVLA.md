@@ -1,150 +1,145 @@
-# Unskild SmolVLA Training Walkthrough (HF Dataset -> `model_final.pt`)
+# Unskild GR00T Walkthrough (Training + Inference)
 
-This walkthrough shows how to train the `unskild_smolvla` adapter on a Hugging Face dataset and create a submission checkpoint.
+This walkthrough is GR00T-only and covers how to use the AIRoA dataset for GR00T training, then run inference in this evaluation runtime.
 
-## 1. Prerequisites
+## 1. Dataset Location
 
-- Python 3.11
-- CUDA GPU recommended
+- Hugging Face dataset: `airoa-org/airoa-moma`
+- URL: `https://huggingface.co/datasets/airoa-org/airoa-moma`
+
+## 2. Prerequisites
+
+Training environment (official GR00T recommendation):
+
+- Conda
+- Python 3.10
+- CUDA-capable NVIDIA GPU machine
+
+Inference/evaluation environment (this repo):
+
+- Python 3.11 for this repository runtime
 - This repo checked out
 
-Install runtime + adapter dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-Install Hugging Face dataset tooling for training:
-
-```bash
-pip install datasets
-```
-
-Optional HF login for private datasets:
+Optional Hugging Face login for private dataset access:
 
 ```bash
 huggingface-cli login
 ```
 
-## 2. Dataset Contract
+## 3. Install Isaac-GR00T from Source
 
-The training script expects one sample to provide:
+`isaac-gr00t` is not installed as a simple PyPI package in this workflow.
+Use the official source-based install:
 
-- `head_rgb`: image `(H, W, 3)` (or `3, H, W`), uint8 or float image
-- `hand_rgb`: image `(H, W, 3)` (or `3, H, W`)
-- `state`: float vector `(8,)`
-- `prompt`: language string
-- `actions`: float array `(T, >=11)`
+```bash
+conda create -n gr00t python=3.10 -y
+conda activate gr00t
 
-You can remap keys using CLI arguments if your dataset uses different field names.
+git clone https://github.com/NVIDIA/Isaac-GR00T.git
+cd Isaac-GR00T
 
-For your dataset:
+# Recommended by upstream:
+uv sync --python 3.10
+uv pip install -e .
+```
 
-- Hugging Face dataset: `airoa-org/airoa-moma`
-- URL: `https://huggingface.co/datasets/airoa-org/airoa-moma/tree/main`
+Alternative (if using pip workflow in the same environment):
 
-## 3. Train the Adapter
+```bash
+pip install -e .
+```
 
-From repo root:
+If you are using LeRobot with GR00T extras, upstream docs also describe:
+
+```bash
+pip install -e ".[groot,dev,test]"
+```
+
+## 4. GR00T Training (Outside Adapter)
+
+This repo does not implement GR00T training code.
+Train/fine-tune with the official GR00T pipeline, then export a GR00T model directory/checkpoint path.
+
+Use this dataset as your training source:
+
+- `airoa-org/airoa-moma`
+
+Make sure your trained artifact is accessible as a local path for inference, for example:
+
+- `/policy_checkpoint/gr00t_model`
+
+## 5. GR00T Inference in This Repo
+
+From this repo root, install runtime deps for the evaluation server:
+
+```bash
+pip install -r requirements.txt
+```
+
+Run directly from repo root:
 
 ```bash
 PYTHONPATH=src:packages/policy-client/src \
-python -m unskild_smolvla.train \
-  --dataset-id airoa-org/airoa-moma \
-  --dataset-config <optional_config_name> \
-  --split train \
-  --epochs 5 \
-  --batch-size 32 \
-  --lr 1e-3 \
-  --device cuda \
-  --output ./checkpoints/unskild_smolvla/model_final.pt
+python run_evaluation.py \
+  --policy unskild_gr00t \
+  --checkpoint-path /policy_checkpoint/gr00t_model \
+  --device cuda
 ```
 
-If you need to list available configs/splits first:
-
-```bash
-python - <<'PY'
-from datasets import get_dataset_config_names, load_dataset_builder
-name = "airoa-org/airoa-moma"
-print("configs:", get_dataset_config_names(name))
-for cfg in get_dataset_config_names(name):
-    b = load_dataset_builder(name, cfg)
-    print(cfg, "splits:", list((b.info.splits or {}).keys()))
-PY
-```
-
-If your dataset keys are different:
+CPU fallback:
 
 ```bash
 PYTHONPATH=src:packages/policy-client/src \
-python -m unskild_smolvla.train \
-  --dataset-id <dataset> \
-  --state-key observation_state \
-  --prompt-key instruction \
-  --head-rgb-key camera_head \
-  --hand-rgb-key camera_hand \
-  --actions-key action \
-  --output ./checkpoints/unskild_smolvla/model_final.pt
+python run_evaluation.py \
+  --policy unskild_gr00t \
+  --checkpoint-path /policy_checkpoint/gr00t_model \
+  --device cpu
 ```
 
-The script writes:
+## 6. Docker Inference
 
-- checkpoint file with `state_dict`
-- model metadata
-- printed SHA256 checksum
-
-## 4. Verify Checkpoint is Loadable
-
-Run smoke test (requires `torch`):
+Default container build keeps GR00T source install disabled (for CPU-safe builds).
+To enable source install during image build:
 
 ```bash
-PYTHONPATH=src:packages/policy-client/src \
-pytest -q src/unskild_smolvla/test_smoke.py
+export INSTALL_GR00T_FROM_SOURCE=1
+export GR00T_REPO_URL=https://github.com/NVIDIA/Isaac-GR00T.git
+export GR00T_REF=main
 ```
 
-## 5. Freeze Submission Config
-
-Edit:
-
-- `submissions/icra2026_unskild_smolvla.yaml`
-
-Update at minimum:
-
-- `checkpoint_uri`
-- `checkpoint_sha256`
-- `device_default`
-
-## 6. Upload Weights to R2
-
-Upload only the checkpoint file:
-
-- `model_final.pt`
-
-Then set the R2 URI in submission YAML.
-
-## 7. Run Policy Server with Frozen Config
-
 ```bash
-export POLICY_NAME=unskild_smolvla
-export POLICY_SUBMISSION_CONFIG=/workspace/submissions/icra2026_unskild_smolvla.yaml
+export POLICY_NAME=unskild_gr00t
+export POLICY_CHECKPOINT_URI=/policy_checkpoint/gr00t_model
+export POLICY_DEVICE=cpu
 ./RUN-DOCKER-CONTAINER.sh up
 ```
 
-Local offline fallback (manual file placement in mounted checkpoint path):
+## 7. Runtime Contract (GR00T Adapter)
 
-```bash
-export POLICY_NAME=unskild_smolvla
-export POLICY_SUBMISSION_CONFIG=/workspace/submissions/icra2026_unskild_smolvla.yaml
-export POLICY_CHECKPOINT_URI=/policy_checkpoint/model_final.pt
-./RUN-DOCKER-CONTAINER.sh up
-```
+Input observation expected by server:
 
-## 8. Expected Checkpoint Format
+- `head_rgb`: `(H, W, 3)`
+- `hand_rgb`: `(H, W, 3)`
+- `state`: `(8,)`
+- `prompt`: `str`
 
-`unskild_smolvla.load_model()` accepts:
+Adapter conversion to GR00T runtime:
 
-- a `.pt` file containing either:
-  - `{"state_dict": ...}`
-  - or direct state dict mapping param name -> tensor
+- images cast to uint8 RGB
+- batch/time dimensions added: `B=1`, `T=1`
+- state cast to float32
+- language packed as `[[prompt]]`
 
-Weights are loaded with `strict=True`, so missing/unexpected keys fail immediately.
+Output returned to evaluation client:
+
+- `actions`: numpy `float32`, shape `(T, 11)`
+
+## 8. Fail-Fast Behavior
+
+The GR00T adapter fails immediately when:
+
+- `--checkpoint-path` (or resolved checkpoint path) is missing
+- GR00T Python dependency is missing from the runtime environment
+- observation fields are missing or malformed for conversion
+- GR00T action shape is invalid for evaluation (`D != 11`)
+- GR00T action contains non-finite values

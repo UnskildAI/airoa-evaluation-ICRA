@@ -3,6 +3,10 @@ services:
     build:
       context: .
       dockerfile: server/Dockerfile
+      args:
+        INSTALL_GR00T_FROM_SOURCE: ${INSTALL_GR00T_FROM_SOURCE:-0}
+        GR00T_REPO_URL: ${GR00T_REPO_URL:-https://github.com/NVIDIA/Isaac-GR00T.git}
+        GR00T_REF: ${GR00T_REF:-main}
     container_name: airoa_policy_server
     network_mode: host
     gpus: all
@@ -12,6 +16,7 @@ services:
       POLICY_NAME: ${POLICY_NAME:-openpi}
       POLICY_CONFIG_NAME: ${POLICY_CONFIG_NAME:-}
       POLICY_CHECKPOINT_DIR: /policy_checkpoint
+      POLICY_CHECKPOINT_PATH: ${POLICY_CHECKPOINT_PATH_IN_CONTAINER:-/policy_checkpoint}
       POLICY_CHECKPOINT_URI: ${POLICY_CHECKPOINT_URI:-}
       POLICY_CHECKPOINT_SHA256: ${POLICY_CHECKPOINT_SHA256:-}
       POLICY_DEVICE: ${POLICY_DEVICE:-}

@@ -128,8 +128,15 @@ ensure_paths() {
       echo "[ERROR] For POLICY_NAME=unskild_smolvla, set POLICY_SUBMISSION_CONFIG or POLICY_CHECKPOINT_URI."
       exit 1
     fi
+  elif [[ "${POLICY_NAME}" == "unskild_gr00t" ]]; then
+    if [[ -z "${POLICY_SUBMISSION_CONFIG:-}" && -z "${POLICY_CHECKPOINT_URI:-}" ]]; then
+      if [[ ! -e "${POLICY_CHECKPOINT_PATH}" ]]; then
+        echo "[ERROR] For POLICY_NAME=unskild_gr00t, set POLICY_SUBMISSION_CONFIG, POLICY_CHECKPOINT_URI, or a valid POLICY_CHECKPOINT_PATH."
+        exit 1
+      fi
+    fi
   else
-    echo "[ERROR] Unsupported POLICY_NAME=${POLICY_NAME}. Allowed: openpi, unskild_smolvla"
+    echo "[ERROR] Unsupported POLICY_NAME=${POLICY_NAME}. Allowed: openpi, unskild_smolvla, unskild_gr00t"
     exit 1
   fi
 
