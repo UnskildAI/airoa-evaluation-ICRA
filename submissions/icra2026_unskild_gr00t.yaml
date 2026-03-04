@@ -1,0 +1,12 @@
+policy_name: "unskild_gr00t"
+checkpoint_path: "/policy_checkpoint/gr00t_model"
+device_default: "cpu"
+
+expected_observation_keys:
+  - "head_rgb"
+  - "hand_rgb"
+  - "state"
+  - "prompt"
+
+action_key: "actions"
+action_dimension: 11

@@ -9,11 +9,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml uv.lock LICENSE README.md ./
-COPY requirements.txt requirements_unskild_smolvla.txt ./
+COPY requirements.txt ./
 COPY packages/policy-client ./packages/policy-client
 COPY src/openpi ./src/openpi
 COPY src/unskild_gr00t ./src/unskild_gr00t
-COPY src/unskild_smolvla ./src/unskild_smolvla
 COPY server ./server
 COPY runtime_core ./runtime_core
 
@@ -21,7 +20,6 @@ COPY runtime_core ./runtime_core
 RUN uv venv --python 3.11 /workspace/.venv
 RUN GIT_LFS_SKIP_SMUDGE=1 uv sync --frozen --no-dev
 RUN uv pip install --python /workspace/.venv/bin/python pytest
-RUN uv pip install --python /workspace/.venv/bin/python -r /workspace/requirements_unskild_smolvla.txt
 
 # Optional GR00T source install. Disabled by default to keep CPU-only builds working.
 ARG INSTALL_GR00T_FROM_SOURCE=0

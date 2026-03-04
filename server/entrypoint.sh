@@ -35,21 +35,6 @@ if [[ "${POLICY_NAME}" == "openpi" ]]; then
   if [[ -n "${POLICY_PYTORCH_DEVICE:-}" ]]; then
     ARGS+=("--pytorch-device" "${POLICY_PYTORCH_DEVICE}")
   fi
-elif [[ "${POLICY_NAME}" == "unskild_smolvla" ]]; then
-  if [[ -n "${POLICY_CHECKPOINT_URI:-}" ]]; then
-    ARGS+=("--checkpoint-uri" "${POLICY_CHECKPOINT_URI}")
-  elif [[ -z "${POLICY_SUBMISSION_CONFIG:-}" && -n "${POLICY_CHECKPOINT_DIR:-}" ]]; then
-    # Allows local manual checkpoint placement under mounted /policy_checkpoint path.
-    ARGS+=("--checkpoint-uri" "${POLICY_CHECKPOINT_DIR}")
-  fi
-
-  if [[ -n "${POLICY_CHECKPOINT_SHA256:-}" ]]; then
-    ARGS+=("--checkpoint-sha256" "${POLICY_CHECKPOINT_SHA256}")
-  fi
-
-  if [[ -n "${POLICY_DEVICE:-}" ]]; then
-    ARGS+=("--device" "${POLICY_DEVICE}")
-  fi
 elif [[ "${POLICY_NAME}" == "unskild_gr00t" ]]; then
   if [[ -n "${POLICY_CHECKPOINT_URI:-}" ]]; then
     # Backward-compatible fallback for existing env usage.
@@ -64,7 +49,7 @@ elif [[ "${POLICY_NAME}" == "unskild_gr00t" ]]; then
     ARGS+=("--device" "${POLICY_DEVICE}")
   fi
 else
-  echo "[ERROR] Unsupported POLICY_NAME=${POLICY_NAME}. Allowed: openpi, unskild_smolvla, unskild_gr00t" >&2
+  echo "[ERROR] Unsupported POLICY_NAME=${POLICY_NAME}. Allowed: openpi, unskild_gr00t" >&2
   exit 1
 fi
 

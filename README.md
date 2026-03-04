@@ -80,40 +80,7 @@ roslaunch hsr_policy_client hsr_policy_client.launch
 By default, `test_mode` is `true`. In this mode, the client uses synthetic random observations
 (`head_rgb`, `hand_rgb`, and `state`) in an infinite loop and prints language/action logs.
 
-## 7. Unskild SmolVLA Submission Mode
-
-Frozen submission config:
-
-- `submissions/icra2026_unskild_smolvla.yaml`
-
-Local training + weight export walkthrough:
-
-- `TRAINING_WALKTHROUGH_UNSKILD_SMOLVLA.md`
-
-Set environment:
-
-```bash
-export POLICY_NAME=unskild_smolvla
-export POLICY_SUBMISSION_CONFIG=/workspace/submissions/icra2026_unskild_smolvla.yaml
-```
-
-Optional local fallback (restricted network):
-
-```bash
-export POLICY_CHECKPOINT_URI=/policy_checkpoint/model_final.pt
-export POLICY_DEVICE=cpu
-```
-
-Optional R2 credentials (for `r2://` checkpoints):
-
-```bash
-export R2_ENDPOINT_URL=https://<account>.r2.cloudflarestorage.com
-export R2_ACCESS_KEY_ID=<key>
-export R2_SECRET_ACCESS_KEY=<secret>
-export R2_BUCKET=<bucket>
-```
-
-## 8. Running GR00T Policy
+## 7. Running GR00T Policy
 
 Install GR00T from NVIDIA source (not via simple PyPI install):
 
@@ -125,6 +92,10 @@ cd Isaac-GR00T
 uv sync --python 3.10
 uv pip install -e .
 ```
+
+For full AIRoA dataset training + inference flow, see:
+
+- `TRAINING_WALKTHROUGH_UNSKILD_GR00T.md`
 
 Then run the GR00T adapter directly:
 
@@ -145,7 +116,16 @@ export GR00T_REPO_URL=https://github.com/NVIDIA/Isaac-GR00T.git
 export GR00T_REF=main
 ```
 
-## 9. Clean Install (pip)
+Use GR00T policy with local checkpoint:
+
+```bash
+export POLICY_NAME=unskild_gr00t
+export POLICY_CHECKPOINT_URI=/policy_checkpoint/gr00t_model
+export POLICY_DEVICE=cpu
+./RUN-DOCKER-CONTAINER.sh up
+```
+
+## 8. Clean Install (pip)
 
 For fresh-machine reproducibility:
 
@@ -153,18 +133,14 @@ For fresh-machine reproducibility:
 pip install -r requirements.txt
 ```
 
-This keeps existing dependency flow and adds pinned policy-specific requirements from:
-
-- `requirements_unskild_smolvla.txt`
-
-## 10. Logs and Stop
+## 9. Logs and Stop
 
 ```bash
 ./RUN-DOCKER-CONTAINER.sh logs policy_server
 ./RUN-DOCKER-CONTAINER.sh down
 ```
 
-## 11. WebSocket I/O Contract
+## 10. WebSocket I/O Contract
 
 Inference request fields:
 
@@ -185,11 +161,11 @@ Value requirement:
 
 - finite numeric values only
 
-## 12. Failure Semantics (Fail-Fast)
+## 11. Failure Semantics (Fail-Fast)
 
-The `unskild_smolvla` adapter exits with explicit errors when:
+The `unskild_gr00t` adapter exits with explicit errors when:
 
-- observation keys/order/dtypes/shapes mismatch the locked schema
-- action dtypes/shapes violate the locked schema
 - checkpoint path/URI is missing or invalid
-- checkpoint SHA256 does not match expected hash
+- GR00T dependency is missing from the runtime environment
+- observation fields are missing or malformed for schema conversion
+- action output is malformed for evaluation (`D != 11`) or contains non-finite values
