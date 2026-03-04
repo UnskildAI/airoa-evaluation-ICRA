@@ -107,16 +107,29 @@ ensure_paths() {
   : "${POLICY_CACHE_DIR:=${OPENPI_CACHE_DIR:-${PWD}/.docker_cache/policy_cache}}"
   : "${HF_CACHE_DIR:=${PWD}/.docker_cache/hf}"
   : "${ROSBAG_DIR:=${PWD}/datasets/rosbags}"
-  : "${POLICY_CHECKPOINT_PATH:?Set POLICY_CHECKPOINT_PATH to your checkpoint full path}"
+  : "${POLICY_NAME:=openpi}"
+  : "${POLICY_CHECKPOINT_PATH:=${PWD}/.docker_cache/policy_checkpoint}"
 
   export POLICY_CACHE_DIR
   export OPENPI_CACHE_DIR="${POLICY_CACHE_DIR}" # Backward-compatible alias.
   export HF_CACHE_DIR
   export ROSBAG_DIR
+  export POLICY_NAME
   export POLICY_CHECKPOINT_PATH
 
-  if [[ ! -d "${POLICY_CHECKPOINT_PATH}" ]]; then
-    echo "[ERROR] POLICY_CHECKPOINT_PATH does not exist: ${POLICY_CHECKPOINT_PATH}"
+  if [[ "${POLICY_NAME}" == "openpi" ]]; then
+    if [[ ! -d "${POLICY_CHECKPOINT_PATH}" ]]; then
+      echo "[ERROR] POLICY_CHECKPOINT_PATH does not exist for openpi policy: ${POLICY_CHECKPOINT_PATH}"
+      exit 1
+    fi
+    : "${POLICY_CONFIG_NAME:?Set POLICY_CONFIG_NAME for openpi policy}"
+  elif [[ "${POLICY_NAME}" == "unskild_smolvla" ]]; then
+    if [[ -z "${POLICY_SUBMISSION_CONFIG:-}" && -z "${POLICY_CHECKPOINT_URI:-}" ]]; then
+      echo "[ERROR] For POLICY_NAME=unskild_smolvla, set POLICY_SUBMISSION_CONFIG or POLICY_CHECKPOINT_URI."
+      exit 1
+    fi
+  else
+    echo "[ERROR] Unsupported POLICY_NAME=${POLICY_NAME}. Allowed: openpi, unskild_smolvla"
     exit 1
   fi
 
@@ -127,7 +140,10 @@ print_env_summary() {
   echo "[INFO] ROS_MASTER_URI=${ROS_MASTER_URI:-}"
   echo "[INFO] ROS_IP=${ROS_IP:-}"
   echo "[INFO] TEST_MODE=${TEST_MODE:-true}"
+  echo "[INFO] POLICY_NAME=${POLICY_NAME:-openpi}"
   echo "[INFO] POLICY_CHECKPOINT_PATH=${POLICY_CHECKPOINT_PATH:-}"
+  echo "[INFO] POLICY_CHECKPOINT_URI=${POLICY_CHECKPOINT_URI:-}"
+  echo "[INFO] POLICY_SUBMISSION_CONFIG=${POLICY_SUBMISSION_CONFIG:-}"
   echo "[INFO] POLICY_CACHE_DIR=${POLICY_CACHE_DIR:-}"
   echo "[INFO] HF_CACHE_DIR=${HF_CACHE_DIR:-}"
   echo "[INFO] ROSBAG_DIR=${ROSBAG_DIR:-}"

@@ -80,14 +80,59 @@ roslaunch hsr_policy_client hsr_policy_client.launch
 By default, `test_mode` is `true`. In this mode, the client uses synthetic random observations
 (`head_rgb`, `hand_rgb`, and `state`) in an infinite loop and prints language/action logs.
 
-## 7. Logs and Stop
+## 7. Unskild SmolVLA Submission Mode
+
+Frozen submission config:
+
+- `submissions/icra2026_unskild_smolvla.yaml`
+
+Local training + weight export walkthrough:
+
+- `TRAINING_WALKTHROUGH_UNSKILD_SMOLVLA.md`
+
+Set environment:
+
+```bash
+export POLICY_NAME=unskild_smolvla
+export POLICY_SUBMISSION_CONFIG=/workspace/submissions/icra2026_unskild_smolvla.yaml
+```
+
+Optional local fallback (restricted network):
+
+```bash
+export POLICY_CHECKPOINT_URI=/policy_checkpoint/model_final.pt
+export POLICY_DEVICE=cpu
+```
+
+Optional R2 credentials (for `r2://` checkpoints):
+
+```bash
+export R2_ENDPOINT_URL=https://<account>.r2.cloudflarestorage.com
+export R2_ACCESS_KEY_ID=<key>
+export R2_SECRET_ACCESS_KEY=<secret>
+export R2_BUCKET=<bucket>
+```
+
+## 8. Clean Install (pip)
+
+For fresh-machine reproducibility:
+
+```bash
+pip install -r requirements.txt
+```
+
+This keeps existing dependency flow and adds pinned policy-specific requirements from:
+
+- `requirements_unskild_smolvla.txt`
+
+## 9. Logs and Stop
 
 ```bash
 ./RUN-DOCKER-CONTAINER.sh logs policy_server
 ./RUN-DOCKER-CONTAINER.sh down
 ```
 
-## 8. WebSocket I/O Contract
+## 10. WebSocket I/O Contract
 
 Inference request fields:
 
@@ -107,3 +152,12 @@ Action order:
 Value requirement:
 
 - finite numeric values only
+
+## 11. Failure Semantics (Fail-Fast)
+
+The `unskild_smolvla` adapter exits with explicit errors when:
+
+- observation keys/order/dtypes/shapes mismatch the locked schema
+- action dtypes/shapes violate the locked schema
+- checkpoint path/URI is missing or invalid
+- checkpoint SHA256 does not match expected hash

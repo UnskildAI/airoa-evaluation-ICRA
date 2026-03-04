@@ -1,0 +1,10 @@
+model_name: "unskild_smolvla_adapter_v1"
+state_dim: 8
+prompt_embedding_dim: 32
+hidden_dims:
+  - 128
+  - 128
+action_horizon: 15
+action_dim: 11
+activation: "gelu"
+normalize_images: true
