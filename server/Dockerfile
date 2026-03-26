@@ -1,11 +1,13 @@
-FROM nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu22.04
+FROM nvidia/cuda:12.6.3-devel-ubuntu22.04
 COPY --from=ghcr.io/astral-sh/uv:0.5.1 /uv /uvx /bin/
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV UV_PYTHON=python3.11
 WORKDIR /workspace
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git git-lfs build-essential clang ca-certificates curl && \
+    git git-lfs build-essential clang ca-certificates curl \
+    python3.11 python3.11-venv python3.11-dev && \
     rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml uv.lock LICENSE README.md ./
